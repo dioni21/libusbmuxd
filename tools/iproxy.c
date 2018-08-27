@@ -183,6 +183,7 @@ static void *acceptor_thread(void *arg)
 		return NULL;
 	}
 
+	usbmuxd_device_info_t *dev = NULL;
 	fprintf(stdout, "Number of available devices == %d\n", count);
 
 	if (dev_list == NULL || dev_list[0].handle == 0) {
@@ -195,7 +196,6 @@ static void *acceptor_thread(void *arg)
 		return NULL;
 	}
 
-	usbmuxd_device_info_t *dev = NULL;
 	if (device_udid) {
 		int i;
 		for (i = 0; i < count; i++) {
@@ -205,7 +205,14 @@ static void *acceptor_thread(void *arg)
 			}
 		}
 	} else {
-		dev = &(dev_list[0]);
+		for (int i = 0; i < count; i++) {
+			if (dev_list[i].connection_type == UC_WIFI){
+				printf("Ignoring device %s connected over WIFI.\n",dev_list[i].udid);
+			}else{
+				dev = &(dev_list[i]);
+				break;
+			}
+		}
 	}
 
 	if (dev == NULL || dev->handle == 0) {

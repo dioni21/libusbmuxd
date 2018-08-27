@@ -23,11 +23,12 @@
 #ifndef USBMUXD_H
 #define USBMUXD_H
 #include <stdint.h>
+#include <usbmuxd-proto.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+    
 /**
  * Device information structure holding data to identify the device.
  * The relevant 'handle' should be passed to 'usbmuxd_connect()', to
@@ -38,6 +39,7 @@ typedef struct {
 	uint32_t handle;
 	int product_id;
 	char udid[41];
+	uint16_t connection_type;
 } usbmuxd_device_info_t;
 
 /**

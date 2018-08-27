@@ -56,6 +56,11 @@ enum usbmuxd_msgtype {
 	//???
 	MESSAGE_PLIST = 8,
 };
+    
+enum usbmuxd_connectiontype {
+    UC_USB = 1,
+    UC_WIFI
+};
 
 struct usbmuxd_header {
 	uint32_t length;    // length of message, including header
@@ -84,10 +89,10 @@ struct usbmuxd_device_record {
 	uint32_t device_id;
 	uint16_t product_id;
 	char serial_number[256];
-	uint16_t padding;
+	uint16_t connection_type;
 	uint32_t location;
 } __attribute__((__packed__));
-
+    
 #ifdef __cplusplus
 }
 #endif

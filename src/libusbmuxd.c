@@ -161,12 +161,25 @@ static struct usbmuxd_device_record* device_record_from_plist(plist_t props)
 			free(strval);
 		}
 	}
+	
 	n = plist_dict_get_item(props, "LocationID");
 	if (n && plist_get_node_type(n) == PLIST_UINT) {
 		plist_get_uint_val(n, &val);
 		dev->location = (uint32_t)val;
 	}
 
+	n = plist_dict_get_item(props, "ConnectionType");
+	if (n && plist_get_node_type(n) == PLIST_STRING) {
+		plist_get_string_val(n, &strval);
+		if (strval) {
+			if (strcmp(strval, "USB") == 0){
+				dev->connection_type = UC_USB;
+			} else if (strcmp(strval, "Network") == 0){
+				dev->connection_type = UC_WIFI;
+			}
+			free(strval);
+		}
+	}
 	return dev;
 }
 
@@ -412,7 +425,7 @@ static plist_t create_plist_message(const char* message_type)
 	plist_dict_set_item(plist, "BundleID", plist_new_string(PLIST_BUNDLE_ID));
 	plist_dict_set_item(plist, "ClientVersionString", plist_new_string(PLIST_CLIENT_VERSION_STRING));
 	plist_dict_set_item(plist, "MessageType", plist_new_string(message_type));
-	plist_dict_set_item(plist, "ProgName", plist_new_string(PLIST_PROGNAME));	
+	plist_dict_set_item(plist, "ProgName", plist_new_string(PLIST_PROGNAME));
 	plist_dict_set_item(plist, "kLibUSBMuxVersion", plist_new_uint(PLIST_LIBUSBMUX_VERSION));
 	return plist;
 }
@@ -497,7 +510,7 @@ static int send_pair_record_packet(int sfd, uint32_t tag, const char* msgtype, c
 	if (data) {
 		plist_dict_set_item(plist, "PairRecordData", plist_copy(data));
 	}
-	
+
 	res = send_plist_packet(sfd, tag, plist);
 	plist_free(plist);
 
@@ -848,6 +861,7 @@ static usbmuxd_device_info_t *device_info_from_device_record(struct usbmuxd_devi
 
 	devinfo->handle = dev->device_id;
 	devinfo->product_id = dev->product_id;
+	devinfo->connection_type = dev->connection_type;
 	memset(devinfo->udid, '\0', sizeof(devinfo->udid));
 	memcpy(devinfo->udid, dev->serial_number, sizeof(devinfo->udid));
 
@@ -856,6 +870,10 @@ static usbmuxd_device_info_t *device_info_from_device_record(struct usbmuxd_devi
 	}
 
 	return devinfo;
+}
+
+int comp_connection_types(const usbmuxd_device_info_t* elem1, const usbmuxd_device_info_t* elem2) {
+  return elem1->connection_type - elem2->connection_type;
 }
 
 USBMUXD_API int usbmuxd_get_device_list(usbmuxd_device_info_t **device_list)
@@ -1006,6 +1024,7 @@ got_device_list:
 	collection_free(&tmpdevs);
 
 	memset(&newlist[dev_cnt], 0, sizeof(usbmuxd_device_info_t));
+	qsort(newlist, dev_cnt, sizeof(usbmuxd_device_info_t), comp_connection_types);
 	*device_list = newlist;
 
 	return dev_cnt;
@@ -1111,7 +1130,7 @@ USBMUXD_API int usbmuxd_send(int sfd, const char *data, uint32_t len, uint32_t *
 	if (sfd < 0) {
 		return -EINVAL;
 	}
-	
+
 	num_sent = socket_send(sfd, (void*)data, len);
 	if (num_sent < 0) {
 		*sent_bytes = 0;
